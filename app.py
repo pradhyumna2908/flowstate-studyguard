@@ -11,6 +11,7 @@ from mediapipe.tasks import python as mp_python
 from mediapipe.tasks.python import vision
 
 import study_guard
+import domain_models
 
 st.set_page_config(
     page_title="FlowState - Multi-Modal StudyGuard",

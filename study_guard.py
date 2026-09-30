@@ -18,6 +18,7 @@ import time
 from typing import Dict, List, Optional, Tuple
 import cv2
 import numpy as np
+import functools
 
 try:
     import winsound
@@ -28,6 +29,23 @@ try:
     import qrcode
 except ImportError:
     qrcode = None
+
+# Formal Declared Domain Taxonomy & Behavioral Decision Fusion
+from domain_models import (
+    AttentionState,
+    DomainCategory,
+    ActiveApplicationTracking,
+    ActiveApplicationTrackingResult,
+    URLDomainFiltering,
+    ScreenFlashColorShiftDetector,
+    SaccadicEyeMovementAnalyzer,
+    MicroFixationDetector,
+    FacialExpressionBlinkRateAnalyzer,
+    KeyboardMouseDynamics,
+    AudioSourceCrossChecking,
+    CognitiveReadingModel,
+    InattentiveScreenViewingDetector as DomainInattentiveDetector,
+)
 
 # ================= SHARED PARENT MOBILE DATA =================
 SHARED_PARENT_DATA: Dict = {
@@ -801,6 +819,20 @@ class MultiModalStudyGuard:
             custom_study_topics=self.custom_study_topics,
             custom_block_keywords=self.custom_block_keywords,
         )
+        # Formally declared domain ontology & specialized analytical models
+        self.inattentive_screen_viewing_detector = DomainInattentiveDetector()
+        self.screen_flash_color_shift_detector = ScreenFlashColorShiftDetector()
+        self.saccadic_eye_movement_analyzer = SaccadicEyeMovementAnalyzer()
+        self.micro_fixation_detector = MicroFixationDetector()
+        self.facial_expression_blink_rate_analyzer = FacialExpressionBlinkRateAnalyzer()
+        self.active_application_tracking = ActiveApplicationTracking()
+        self.url_domain_filtering = URLDomainFiltering(
+            custom_study_topics=self.custom_study_topics,
+            custom_block_keywords=self.custom_block_keywords
+        )
+        self.keyboard_mouse_dynamics = KeyboardMouseDynamics()
+        self.audio_source_cross_checking = AudioSourceCrossChecking()
+        self.cognitive_reading_model = CognitiveReadingModel()
 
     def update_settings(
         self,
@@ -813,6 +845,21 @@ class MultiModalStudyGuard:
         self.shield.mode = shield_mode
         self.shield.custom_study_topics = custom_study_topics
         self.shield.custom_block_keywords = custom_block_keywords
+
+    def evaluate_frame(
+        self,
+        landmarks,
+        frame: np.ndarray,
+        head_ratio: Optional[float] = None,
+        distraction_threshold: float = 0.35,
+    ) -> Dict:
+        """Alias for evaluate() supporting automated testing, profiling, and benchmarking."""
+        return self.evaluate(
+            landmarks=landmarks,
+            frame=frame,
+            head_ratio=head_ratio,
+            distraction_threshold=distraction_threshold,
+        )
 
     def evaluate(
         self,
@@ -874,6 +921,12 @@ class MultiModalStudyGuard:
         # 5. Eye Biometrics (EAR, Blinks, Saccades)
         ear, bpm, _ = self.blink_detector.update(landmarks, w, h)
         is_reading, saccade_score = self.saccade_detector.update(landmarks, w)
+
+        # Update specialized domain analytical models
+        self.keyboard_mouse_dynamics.evaluate_interaction(idle_seconds, persistent_screen_gaze=not head_turned)
+        self.active_application_tracking.inspect_process(proc_name, win_title)
+        self.screen_flash_color_shift_detector.compute_ambient_screen_glare(flash_rmsd)
+        self.facial_expression_blink_rate_analyzer.evaluate_biometrics(bpm, ear)
 
         # 6. Multi-Modal Fusion Decision Matrix
         if head_turned:
@@ -972,7 +1025,8 @@ class ScreenFlashColorShiftDetector(ScreenFlashDetector):
     Biometric analyzer detecting screen flash, color shifts, and ambient monitor glare
     on the user's face to identify dynamic video playback (movies/gaming) vs steady study materials.
     """
-    pass
+    def compute_ambient_screen_glare(self, flash_rmsd: float) -> Tuple[bool, float]:
+        return flash_rmsd > self.threshold, flash_rmsd
 
 
 class SaccadicEyeMovementAnalyzer(SaccadeDetector):
@@ -1005,7 +1059,12 @@ class FacialExpressionBlinkRateAnalyzer(BlinkDetector):
     Detects significantly reduced blink rates (< 6 BPM) and spontaneous facial reactions
     typical of passive video entertainment.
     """
-    pass
+    def evaluate_biometrics(self, current_bpm: float, eye_aspect_ratio: float) -> Dict:
+        return {
+            "eye_aspect_ratio": eye_aspect_ratio,
+            "blinks_per_minute": current_bpm,
+            "reduced_blink_rate": current_bpm < 6.0,
+        }
 
 
 class KeyboardMouseDynamics:
@@ -1021,6 +1080,16 @@ class KeyboardMouseDynamics:
 
     def is_passive_observation(self, idle_seconds: float) -> bool:
         return idle_seconds > self.idle_threshold_seconds
+
+    def evaluate_interaction(self, idle_seconds: float, persistent_screen_gaze: bool = True) -> Dict:
+        is_extended = idle_seconds > self.idle_threshold_seconds
+        return {
+            "idle_seconds": idle_seconds,
+            "active_typing_or_scrolling": idle_seconds < 25.0,
+            "extended_periods_zero_keystrokes": is_extended,
+            "persistent_screen_gaze": persistent_screen_gaze,
+            "passive_media_consumption_suspected": is_extended and persistent_screen_gaze,
+        }
 
 
 class AudioSourceCrossChecking:
@@ -1060,7 +1129,8 @@ class ActiveApplicationTracking(FocusShield):
     Background agent logging active window titles and process executables (e.g. flagging vlc.exe,
     netflix, or streaming sites) and enforcing focus shield policies.
     """
-    pass
+    def inspect_process(self, process_name: str, window_title: str):
+        return self.check_and_enforce(0, window_title, process_name, "NEUTRAL", "")
 
 
 class CognitiveReadingModel:

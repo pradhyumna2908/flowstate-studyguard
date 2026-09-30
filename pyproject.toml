@@ -37,5 +37,7 @@ markers = [
     "biometrics: tests for biometric signals and vision algorithms",
     "shield: tests for application blocker and domain filtering",
     "fusion: tests for multimodal decision fusion",
-    "hygiene: tests for configuration and repository hygiene"
+    "hygiene: tests for configuration and repository hygiene",
+    "efficiency: tests for empirical latency, throughput, and memory bounds",
+    "accessibility: tests for WCAG 2.1 AA standards and documentation integrity"
 ]
