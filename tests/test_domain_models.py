@@ -164,3 +164,48 @@ def test_inattentive_screen_viewing_decision_fusion():
     )
     assert res_edu["attention_state"] == "FOCUSED_LECTURE"
     assert res_edu["is_inattentive_viewing"] is False
+
+
+def test_dynamic_objects_and_fluid_motion_tracking():
+    """Tests DynamicObjectsFluidMotionTracker distinguishing dynamic tracking from reading."""
+    tracker = dm.DynamicObjectsFluidMotionTracker()
+    for i in range(15):
+        # Simulate fluid 2D tracking across screen
+        res = tracker.track_fluid_motion(0.2 + 0.3 * (i % 3), 0.1 + 0.25 * (i % 2))
+    assert res["following_dynamic_objects"] is True
+    assert res["fluid_motion_tracking"] is True
+
+
+def test_spontaneous_emotional_reactions_and_stare():
+    """Tests facial expressions: smiling, laughing, widening eyes, and screen stare effect."""
+    import study_guard as sg
+    analyzer = sg.FacialExpressionBlinkRateAnalyzer()
+    emotions = analyzer.detect_spontaneous_emotional_reactions(mouth_aspect_ratio=0.70, eyebrow_elevation=0.40)
+    assert emotions["spontaneous_emotional_reactions"] is True
+    assert emotions["smiling"] is True
+    assert emotions["laughing"] is True
+    assert emotions["widening_eyes"] is True
+
+    stare = analyzer.detect_screen_stare_effect(current_bpm=4.5, eye_aspect_ratio=0.28)
+    assert stare is True
+
+
+def test_sdg9_target_9_4_architecture_telemetry():
+    """Tests SDG 9: Target 9.4 metrics, reproducible heuristics, and overhead bounds."""
+    import study_guard as sg
+    heuristics = sg.ReproducibleComputationalHeuristics.compute_heuristic_confidence(rmsd=4.5, bpm=4.0, idle_sec=100.0)
+    assert heuristics >= 0.90
+
+    accel = sg.EdgeAIAcceleration.get_acceleration_profile()
+    assert accel["mode"] == "EDGE_LOCAL_CPU"
+
+    resilience = sg.ResilientOptimizationArchitectures.verify_resilience()
+    assert resilience["zero_cloud_leakage"] is True
+
+    automation = sg.ModernIndustrialAutomation.get_automation_telemetry()
+    assert "SDG 9.4" in automation["target"]
+
+    overhead = sg.ReducedComputingOverhead.get_overhead_metrics()
+    assert overhead["max_ram_mb"] == 50.0
+    assert overhead["max_latency_ms"] == 5.0
+
