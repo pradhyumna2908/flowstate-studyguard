@@ -119,11 +119,19 @@ def get_latest_parent_nudge() -> Optional[dict]:
     return SHARED_PARENT_DATA.get("last_nudge")
 
 
-# Windows API bindings via ctypes (Zero external dependencies)
-user32 = ctypes.windll.user32
-kernel32 = ctypes.windll.kernel32
+import sys
+import ctypes
 
-SW_MINIMIZE = 6
+# Only load Windows APIs if running on a Windows machine
+if sys.platform == "win32":
+    user32 = ctypes.windll.user32
+    kernel32 = ctypes.windll.kernel32
+    SW_MINIMIZE = 6
+else:
+    # Fallback for Streamlit Cloud (Linux)
+    user32 = None
+    kernel32 = None
+    SW_MINIMIZE = 6
 WM_CLOSE = 0x0010
 PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
 
