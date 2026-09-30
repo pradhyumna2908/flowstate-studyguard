@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "flowstate-studyguard"
+version = "2.0.0"
+description = "Multi-Modal AI StudyGuard detecting inattentive screen viewing through biometric signals and active window monitoring."
+readme = "README.md"
+authors = [{ name = "VisionFlow Team" }]
+license = { text = "MIT" }
+requires-python = ">=3.10"
+keywords = [
+    "digital-wellbeing",
+    "biometric-ai",
+    "edge-computing",
+    "study-guard",
+    "inattentive-screen-viewing",
+    "sdg-9",
+    "multimodal-ai"
+]
+dependencies = [
+    "streamlit>=1.38.0",
+    "mediapipe>=1.0.1",
+    "opencv-python>=4.8.0",
+    "numpy>=1.24.0",
+    "qrcode>=8.0",
+    "pytest>=8.0.0"
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-v --strict-markers"
+markers = [
+    "biometrics: tests for biometric signals and vision algorithms",
+    "shield: tests for application blocker and domain filtering",
+    "fusion: tests for multimodal decision fusion",
+    "hygiene: tests for configuration and repository hygiene"
+]
