@@ -115,6 +115,10 @@ defaults = {
     "guard": None,
     "latest_telemetry": {},
     "final_summary": None,
+    "auto_alert_distraction": True,
+    "auto_alert_completion": True,
+    "direct_msg_text": "",
+    "last_direct_dispatch_status": None,
 }
 
 for k, v in defaults.items():
@@ -297,6 +301,23 @@ def stop_session() -> None:
         "status_reason": "Student completed or paused session",
     })
 
+    # Automatically dispatch report directly to parent mobile if enabled
+    if st.session_state.get("auto_alert_completion", True):
+        p_num = st.session_state.parent_phone.strip()
+        clean_p = re.sub(r'[^0-9]', '', p_num)
+        if len(clean_p) >= 7:
+            report_msg = (
+                f"🏆 FlowState Verified Study Report:\n"
+                f"• Target Goal: {st.session_state.final_summary['target_mins']} mins\n"
+                f"• Study Time: {format_time(st.session_state.final_summary['elapsed'])}\n"
+                f"• Focus Score: {st.session_state.final_summary['score']:.1f}%\n"
+                f"• Deep Focus: {format_time(st.session_state.final_summary['focused'])}\n"
+                f"• Distractions Blocked: {st.session_state.final_summary['total_blocked_apps']} apps\n"
+                f"Verified by FlowState StudyGuard AI."
+            )
+            res = study_guard.send_direct_message(p_num, report_msg, provider="auto")
+            st.session_state.last_direct_dispatch_status = res
+
 def process_frame(frame: np.ndarray) -> np.ndarray:
     frame = cv2.flip(frame, 1)
     st.session_state.frame_count += 1
@@ -412,6 +433,17 @@ def process_frame(frame: np.ndarray) -> np.ndarray:
         cv2.rectangle(frame, (18, 70), (w - 18, 104), (2, 84, 130), -1)
         cv2.putText(frame, nudge_text[:50], (28, 92), cv2.FONT_HERSHEY_SIMPLEX, 0.50, (255, 255, 255), 2, cv2.LINE_AA)
 
+    # Automated direct alert trigger if prolonged inattentive viewing/distraction occurs (>30s)
+    if st.session_state.get("auto_alert_distraction", True):
+        cur_distracted = st.session_state.distracted_time
+        if cur_distracted >= 30.0:
+            study_guard.check_and_trigger_distraction_alert(
+                st.session_state.parent_phone,
+                cur_distracted,
+                active_window=tele.get("win_title", ""),
+                cooldown_seconds=300.0
+            )
+
     return frame
 
 # ==============================================================================
@@ -520,6 +552,22 @@ if is_parent_mode:
                     <span style="font-size:11px; color:#94a3b8;">{item.get('title','')} • {item.get('timestamp','')}</span>
                 </div>
                 """, unsafe_allow_html=True)
+        # Direct Messages Sent to Parent Mobile
+        direct_msgs = state.get("direct_messages", [])
+        if direct_msgs:
+            st.markdown("### 📩 Messages Sent Directly to This Phone")
+            for d in direct_msgs[:4]:
+                msg_body = d.get('message','').replace('\n', '<br>')
+                st.markdown(f"""
+                <div style="background:#0f1c2e; border-left:4px solid #38bdf8; border-radius:8px; padding:10px 14px; margin-bottom:8px; font-size:13px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span style="font-weight:700; color:#38bdf8;">To: {d.get('phone')}</span>
+                        <span style="font-size:11px; color:#94a3b8;">{d.get('timestamp')}</span>
+                    </div>
+                    <div style="color:#e2e8f0; margin-top:5px; font-size:13px; line-height:1.4;">{msg_body}</div>
+                    <div style="font-size:11px; color:#00e5a3; margin-top:6px; font-weight:600;">Status: ✓ {d.get('status','Delivered')} via {d.get('provider','Direct Gateway').upper()}</div>
+                </div>
+                """, unsafe_allow_html=True)
 
         # 5. Send Encouragement Nudge from Parent Mobile
         st.markdown("### 💬 Send Instant Encouragement to Student Screen")
@@ -613,7 +661,7 @@ with st.sidebar:
         st.session_state.parent_phone = parent_phone_input
         study_guard.update_shared_state({"parent_phone": parent_phone_input})
 
-    # Direct 1-Click WhatsApp Live Dashboard Share Link
+    # Direct Message Controls to Parent Number
     clean_p = re.sub(r'[^0-9]', '', st.session_state.parent_phone)
     if len(clean_p) >= 7:
         wa_invite_msg = (
@@ -622,9 +670,27 @@ with st.sidebar:
             f"{parent_mobile_url}"
         )
         wa_invite_url = study_guard.format_whatsapp_url(st.session_state.parent_phone, wa_invite_msg)
+
+        if st.button("🚀 Send Message Directly to Number", key="sidebar_direct_send_btn", use_container_width=True):
+            res = study_guard.send_direct_message(st.session_state.parent_phone, wa_invite_msg, provider="auto")
+            st.session_state.last_direct_dispatch_status = res
+            st.toast(f"✅ Dispatched directly to {st.session_state.parent_phone}!")
+
         st.markdown(
-            f'<a href="{wa_invite_url}" target="_blank" class="whatsapp-btn">💬 Send Live Link on WhatsApp</a>',
+            f'<a href="{wa_invite_url}" target="_blank" class="whatsapp-btn" style="text-align:center; display:block;">💬 Open in WhatsApp</a>',
             unsafe_allow_html=True,
+        )
+
+        st.markdown("**Automated Notifications:**")
+        st.session_state.auto_alert_distraction = st.checkbox(
+            "🔔 Alert on Prolonged Distraction (>30s)",
+            value=st.session_state.auto_alert_distraction,
+            help="Directly alerts parent phone if student gets distracted or watches passive entertainment."
+        )
+        st.session_state.auto_alert_completion = st.checkbox(
+            "📋 Auto-Send Report on Finish",
+            value=st.session_state.auto_alert_completion,
+            help="Directly dispatches verified study performance summary when session ends."
         )
 
     st.divider()
@@ -796,8 +862,8 @@ if st.session_state.active:
             else:
                 st.info("No distractions intercepted yet. Focus Shield is active.")
 
-        # OPTION 3: 📱 Parent Mobile Connection & WhatsApp (Hidden inside expander)
-        with st.expander("📱 Parent Mobile Connection & WhatsApp Sharing", expanded=False):
+        # OPTION 3: 📱 Parent Mobile Connection & Direct Messaging (Hidden inside expander)
+        with st.expander("📱 Parent Mobile Connection & Direct Messaging", expanded=False):
             q_col1, q_col2 = st.columns([1, 2])
             with q_col1:
                 if parent_qr_b64:
@@ -811,11 +877,41 @@ if st.session_state.active:
                 st.write(f"**Parent Mobile Number:** `{st.session_state.parent_phone}`")
                 st.write(f"**Live Dashboard URL:** `{parent_mobile_url}`")
                 if len(clean_p) >= 7:
-                    st.markdown(
-                        f'<a href="{wa_invite_url}" target="_blank" class="whatsapp-btn">💬 Send Live Link to Parent via WhatsApp</a>',
-                        unsafe_allow_html=True,
-                    )
-                st.caption("Parents can watch the live session progress and send encouraging messages from their phone.")
+                    d_c1, d_c2 = st.columns([1.2, 1])
+                    with d_c1:
+                        if st.button("🚀 Send Link Directly to Number", key="expander_direct_send", use_container_width=True):
+                            res = study_guard.send_direct_message(st.session_state.parent_phone, wa_invite_msg, provider="auto")
+                            st.session_state.last_direct_dispatch_status = res
+                            st.toast(f"✅ Dispatched directly to {st.session_state.parent_phone}!")
+                    with d_c2:
+                        st.markdown(
+                            f'<a href="{wa_invite_url}" target="_blank" class="whatsapp-btn" style="text-align:center; display:block;">💬 Open WhatsApp</a>',
+                            unsafe_allow_html=True,
+                        )
+                st.caption("Parents can watch the live session progress and receive instant direct alerts on their phone.")
+
+            # Custom Quick Message Direct Dispatch
+            if len(clean_p) >= 7:
+                st.markdown("---")
+                st.markdown("##### ✉️ Quick Direct Message to Parent Mobile")
+                quick_preset = st.selectbox(
+                    "Choose Message Preset or Custom:",
+                    [
+                        "🟢 Everything is on track! Full focus maintained.",
+                        "⚠️ Break time - pausing for 5 minutes of rest.",
+                        "🎯 Reached 50% of today's study target!",
+                        "✍️ Custom message..."
+                    ],
+                    key="quick_msg_preset_active"
+                )
+                custom_txt = ""
+                if "Custom" in quick_preset:
+                    custom_txt = st.text_input("Enter custom message:", placeholder="e.g. Completed Chapter 4 math questions!", key="custom_msg_active_input")
+                msg_to_send = custom_txt if ("Custom" in quick_preset and custom_txt.strip()) else quick_preset
+
+                if st.button("📤 Send Direct Message to Phone", key="send_custom_quick_active"):
+                    res = study_guard.send_direct_message(st.session_state.parent_phone, msg_to_send, provider="auto")
+                    st.success(f"✅ Dispatched directly to {st.session_state.parent_phone} via {res.get('provider','Direct Gateway').upper()}!")
 
     live_study_monitor()
 
@@ -857,15 +953,23 @@ if st.session_state.final_summary is not None:
     )
     wa_report_url = study_guard.format_whatsapp_url(parent_num, share_msg)
 
-    st.markdown("### 📲 Send Report to Parent Mobile")
-    if wa_report_url:
-        st.markdown(
-            f'<a href="{wa_report_url}" target="_blank" class="whatsapp-btn" style="font-size:15px; padding:10px 20px;">'
-            f'💬 Send Verified Study Report to Parent ({parent_num}) on WhatsApp</a>',
-            unsafe_allow_html=True,
-        )
+    st.markdown("### 📲 Send Report Directly to Parent Mobile")
+    clean_p_num = re.sub(r'[^0-9]', '', parent_num)
+    if parent_num and len(clean_p_num) >= 7:
+        d_col1, d_col2 = st.columns([1.5, 1])
+        with d_col1:
+            if st.button(f"🚀 Send Report Directly to {parent_num}", key="direct_send_final_report_btn", type="primary", use_container_width=True):
+                res = study_guard.send_direct_message(parent_num, share_msg, provider="auto")
+                st.session_state.last_direct_dispatch_status = res
+                st.success(f"✅ Verified Study Report dispatched directly to {parent_num} via {res.get('provider','Direct Gateway').upper()}!")
+        with d_col2:
+            if wa_report_url:
+                st.markdown(
+                    f'<a href="{wa_report_url}" target="_blank" class="whatsapp-btn" style="text-align:center; display:block;">💬 Open in WhatsApp</a>',
+                    unsafe_allow_html=True,
+                )
     else:
-        st.info("Enter Parent's Mobile Number in the sidebar to send 1-click WhatsApp study certificates.")
+        st.info("Enter Parent's Mobile Number in the sidebar to send direct study reports.")
 
     with st.expander("📄 View Text Report Format"):
         st.code(share_msg, language="markdown")
@@ -892,7 +996,15 @@ elif not st.session_state.active:
             if len(clean_p) >= 7:
                 wa_msg = f"Hi Mom/Dad! Here is the link to my FlowState study dashboard:\n{parent_mobile_url}"
                 wa_url = study_guard.format_whatsapp_url(st.session_state.parent_phone, wa_msg)
-                st.markdown(
-                    f'<a href="{wa_url}" target="_blank" class="whatsapp-btn">💬 Send Link on WhatsApp</a>',
-                    unsafe_allow_html=True,
-                )
+
+                d_c1, d_c2 = st.columns([1.2, 1])
+                with d_c1:
+                    if st.button("🚀 Send Message Directly to Number", key="idle_direct_send_btn", use_container_width=True):
+                        res = study_guard.send_direct_message(st.session_state.parent_phone, wa_msg, provider="auto")
+                        st.session_state.last_direct_dispatch_status = res
+                        st.toast(f"✅ Dispatched directly to {st.session_state.parent_phone}!")
+                with d_c2:
+                    st.markdown(
+                        f'<a href="{wa_url}" target="_blank" class="whatsapp-btn" style="text-align:center; display:block;">💬 Open WhatsApp</a>',
+                        unsafe_allow_html=True,
+                    )

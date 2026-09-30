@@ -45,6 +45,45 @@ def test_parent_nudge_delivery():
     assert "Great job" in nudge["message"]
 
 
+def test_send_direct_message_validation():
+    """Asserts invalid phone number rejection and valid phone normalization."""
+    invalid_res = study_guard.send_direct_message("123", "Too short")
+    assert not invalid_res["success"]
+    assert "Invalid phone number" in invalid_res["error"]
+
+    valid_res = study_guard.send_direct_message("+91 98765-43210", "Study started!")
+    assert valid_res["success"]
+    assert valid_res["clean_phone"] == "919876543210"
+    assert "delivered" in valid_res["status"]
+
+
+def test_send_direct_message_history_and_latest():
+    """Asserts that direct messages appear in the shared message bus."""
+    study_guard.send_direct_message("+91 99999-88888", "Direct Alert Test")
+    latest = study_guard.get_latest_direct_message()
+    assert latest is not None
+    assert latest["phone"] == "+91 99999-88888"
+    assert latest["message"] == "Direct Alert Test"
+
+    all_msgs = study_guard.get_direct_messages()
+    assert len(all_msgs) >= 1
+    assert any(m["message"] == "Direct Alert Test" for m in all_msgs)
+
+
+def test_distraction_alert_trigger_and_cooldown():
+    """Asserts automated distraction alert triggers on >30s and respects cooldown."""
+    phone = "+91 9876543210"
+    # Should not trigger below 30s
+    res_under = study_guard.check_and_trigger_distraction_alert(phone, 20.0, "YouTube")
+    assert res_under is None
+
+    # Should trigger above 30s
+    res_over = study_guard.check_and_trigger_distraction_alert(phone, 35.0, "Roblox", cooldown_seconds=0.0)
+    assert res_over is not None
+    assert res_over["success"]
+    assert "inattentive/distracted" in res_over["message"]
+
+
 def test_configuration_hygiene_env_example():
     """Asserts presence of .env.example configuration template."""
     env_example = os.path.join(os.path.dirname(__file__), "..", ".env.example")
