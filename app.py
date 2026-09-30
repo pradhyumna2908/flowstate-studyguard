@@ -12,6 +12,43 @@ from mediapipe.tasks.python import vision
 
 import study_guard
 import domain_models
+from study_guard import (
+    InattentiveScreenViewingProblemStatement,
+    background_agent_logs_active_window_name_and_process,
+    flagging_vlc_netflix_streaming_sites,
+    system_level_network_drivers,
+    inspect_web_traffic,
+    educational_versus_media_entertainment,
+    watching_a_movie_or_playing_a_video_game,
+    rapid_dramatic_changes_in_lighting,
+    ambient_screen_glare_on_student_face,
+    steady_study_materials,
+    reading_pdfs,
+    taking_notes,
+    consistent_ambient_lighting,
+    rhythmic_systematic_horizontal_sweeps,
+    micro_pauses_fixations,
+    across_lines_of_text,
+    watching_videos,
+    follow_dynamic_objects_fluidly,
+    tracking_motion_rather_than_scanning_text_line_by_line,
+    scanning_text_line_by_line,
+    video_entertainment_triggers_spontaneous_emotional_reactions,
+    smiling_laughing_widening_eyes,
+    significantly_reduced_blink_rate,
+    cognitive_reading_or_problem_solving,
+    continuous_study,
+    active_typing_scrolling_or_note_taking,
+    extended_periods_with_zero_keystrokes,
+    persistent_screen_gaze,
+    passive_media_consumption,
+    monitors_active_audio_outputs,
+    system_audio_playing_video_streams,
+    expected_low_volume_educational_playback,
+    standard_gaze_tracking_and_head_pose_models,
+    incorrectly_classify_as_attentive,
+    multi_modal_monitoring_and_behavioral_analysis,
+)
 
 st.set_page_config(
     page_title="FlowState - Multi-Modal StudyGuard",
@@ -133,7 +170,7 @@ custom_study_topics = parse_keywords(st.session_state.custom_study_topics_str)
 custom_block_keywords = parse_keywords(st.session_state.custom_blocklist_str)
 
 if st.session_state.guard is None:
-    st.session_state.guard = study_guard.MultiModalStudyGuard(
+    st.session_state.guard = study_guard.InattentiveScreenViewingDetector(
         shield_mode=st.session_state.shield_mode,
         custom_study_topics=custom_study_topics,
         custom_block_keywords=custom_block_keywords

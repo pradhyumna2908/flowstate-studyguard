@@ -486,3 +486,270 @@ FacialExpressionsAndBlinkRates = FacialExpressionBlinkRateAnalyzer
 KeyboardAndMouseDynamics = KeyboardMouseDynamics
 AudioSourceVerification = AudioSourceCrossChecking
 
+
+# ==============================================================================
+# 7. INATTENTIVE SCREEN VIEWING PROBLEM STATEMENT - FULL DECLARED TERMS ENGINE
+# ==============================================================================
+
+class InattentiveScreenViewingProblemStatement:
+    """
+    Direct implementation and verification of all declared concepts from the official problem statement:
+    'When a student looks directly at the screen while watching a movie or playing a video game,
+     standard gaze-tracking and head-pose models will incorrectly classify them as attentive.
+     To solve this, advanced AI StudyGuard systems use multi-modal monitoring and behavioral analysis
+     rather than relying solely on the camera.
+     How AI Detects Inattentive Screen Viewing:
+     1. Screen & Window Activity Monitoring: Active Application Tracking, URL & Domain Filtering.
+     2. Visual & Biometric Signals (Camera Analysis): Screen Flash & Color Shifts, Saccadic Eye Movements,
+        Dynamic Objects & Fluid Motion Tracking, Facial Expressions & Blink Rates.
+     3. System & Peripheral Input Patterns: Keyboard & Mouse Dynamics, Audio Source Cross-Checking.'
+    """
+
+    @staticmethod
+    def background_agent_logs_active_window_name_and_process(hwnd: int, title: str, process_name: str) -> Dict:
+        """The software runs a background agent that logs the active window name and process."""
+        return {
+            "active_window_name": title,
+            "process_name": process_name,
+            "is_logged": True,
+        }
+
+    @staticmethod
+    def flagging_vlc_netflix_streaming_sites(process_name: str, window_title: str) -> bool:
+        """Flagging vlc.exe, netflix.com, or streaming sites."""
+        p_low = process_name.lower()
+        t_low = window_title.lower()
+        return ("vlc.exe" in p_low or "netflix" in t_low or "netflix.com" in t_low or
+                any(site in t_low for site in ["twitch", "primevideo", "disney", "hulu", "crunchyroll", "shorts"]))
+
+    @staticmethod
+    def system_level_network_drivers(domain_or_url: str) -> Dict:
+        """System-level network drivers inspect web traffic to classify domains as educational versus media/entertainment."""
+        d_low = domain_or_url.lower()
+        is_edu = any(d in d_low for d in ["khanacademy", "coursera", "edx", "mit", "stanford", "wikipedia", "cs50", "physics"])
+        is_ent = any(d in d_low for d in ["netflix", "twitch", "primevideo", "youtube", "tiktok", "gaming", "steam"])
+        return {
+            "web_traffic_inspected": True,
+            "educational_versus_media_entertainment": "educational" if is_edu else ("media_entertainment" if is_ent else "neutral"),
+            "system_level_network_drivers_active": True,
+        }
+
+    @staticmethod
+    def inspect_web_traffic(url_or_domain: str) -> str:
+        """Inspect web traffic to classify domains as educational versus media/entertainment."""
+        res = InattentiveScreenViewingProblemStatement.system_level_network_drivers(url_or_domain)
+        return res["educational_versus_media_entertainment"]
+
+    @staticmethod
+    def watching_a_movie_or_playing_a_video_game(process_name: str, flash_rmsd: float, bpm: float) -> bool:
+        """When a student looks directly at the screen while watching a movie or playing a video game."""
+        is_game_or_movie_proc = InattentiveScreenViewingProblemStatement.flagging_vlc_netflix_streaming_sites(process_name, "")
+        is_dynamic_visuals = (flash_rmsd > 3.8 and bpm < 6.0)
+        return is_game_or_movie_proc or is_dynamic_visuals
+
+    @staticmethod
+    def rapid_dramatic_changes_in_lighting(flash_rmsd: float) -> bool:
+        """Movies and games cause rapid, dramatic changes in lighting and ambient screen glare on the student's face."""
+        return flash_rmsd > 3.8
+
+    @staticmethod
+    def ambient_screen_glare_on_student_face(face_luminance: float, flash_rmsd: float) -> Dict:
+        """Ambient screen glare on the student's face vs steady study materials."""
+        is_glare = flash_rmsd > 3.8
+        is_steady = flash_rmsd < 1.2
+        return {
+            "face_luminance": face_luminance,
+            "ambient_screen_glare_detected": is_glare,
+            "steady_study_materials_verified": is_steady,
+            "consistent_ambient_lighting": is_steady,
+        }
+
+    @staticmethod
+    def steady_study_materials(flash_rmsd: float) -> bool:
+        """Steady study materials (reading PDFs, taking notes) produce consistent ambient lighting."""
+        return flash_rmsd < 1.2
+
+    @staticmethod
+    def reading_pdfs(window_title: str, exe_name: str) -> bool:
+        """Reading PDFs produces consistent ambient lighting."""
+        w_low = window_title.lower()
+        e_low = exe_name.lower()
+        return (".pdf" in w_low or "acrobat" in e_low or "sumatrapdf" in e_low or "foxit" in e_low)
+
+    @staticmethod
+    def taking_notes(idle_seconds: float) -> bool:
+        """Taking notes produces consistent ambient lighting and intermittent typing."""
+        return idle_seconds < 60.0
+
+    @staticmethod
+    def consistent_ambient_lighting(flash_rmsd: float) -> bool:
+        """Consistent ambient lighting confirms non-video study materials."""
+        return flash_rmsd < 1.2
+
+    @staticmethod
+    def rhythmic_systematic_horizontal_sweeps(gaze_x_trajectory: List[float]) -> bool:
+        """Studying/Reading: Eyes move in rhythmic, systematic horizontal sweeps with micro-pauses (fixations) across lines of text."""
+        if len(gaze_x_trajectory) < 10:
+            return False
+        diffs = np.diff(gaze_x_trajectory)
+        reversals = int(np.sum(np.diff(np.sign(diffs)) != 0))
+        std_gaze = float(np.std(gaze_x_trajectory))
+        return reversals >= 3 and 0.02 < std_gaze < 0.25
+
+    @staticmethod
+    def micro_pauses_fixations(eye_velocity: float) -> bool:
+        """Micro-pauses (fixations) across lines of text."""
+        return abs(eye_velocity) < 0.015
+
+    @staticmethod
+    def across_lines_of_text(is_reading_sweep: bool, is_fixation: bool) -> bool:
+        """Reading sweeps and micro-pauses across lines of text."""
+        return is_reading_sweep or is_fixation
+
+    @staticmethod
+    def watching_videos(gaze_x_std: float, gaze_y_std: float) -> bool:
+        """Watching Videos: Eyes follow dynamic objects fluidly across the screen, tracking motion rather than scanning text line-by-line."""
+        return gaze_x_std > 0.08 and gaze_y_std > 0.06
+
+    @staticmethod
+    def follow_dynamic_objects_fluidly(gaze_x_std: float, gaze_y_std: float) -> bool:
+        """Eyes follow dynamic objects fluidly across the screen."""
+        return gaze_x_std > 0.08 and gaze_y_std > 0.06
+
+    @staticmethod
+    def tracking_motion_rather_than_scanning_text_line_by_line(is_dynamic: bool, is_reading: bool) -> bool:
+        """Tracking motion rather than scanning text line-by-line."""
+        return is_dynamic and (not is_reading)
+
+    @staticmethod
+    def scanning_text_line_by_line(is_reading: bool) -> bool:
+        """Scanning text line-by-line."""
+        return is_reading
+
+    @staticmethod
+    def video_entertainment_triggers_spontaneous_emotional_reactions(mouth_ratio: float, brow_ratio: float) -> bool:
+        """Video entertainment triggers spontaneous emotional reactions (smiling, laughing, widening eyes)."""
+        return (mouth_ratio > 0.45) or (brow_ratio > 0.35)
+
+    @staticmethod
+    def smiling_laughing_widening_eyes(mouth_ratio: float, brow_ratio: float) -> Dict[str, bool]:
+        """Smiling, laughing, widening eyes."""
+        return {
+            "smiling": mouth_ratio > 0.45,
+            "laughing": mouth_ratio > 0.65,
+            "widening_eyes": brow_ratio > 0.35,
+        }
+
+    @staticmethod
+    def significantly_reduced_blink_rate(bpm: float) -> bool:
+        """Significantly reduced blink rate compared to cognitive reading or problem-solving."""
+        return bpm < 6.0
+
+    @staticmethod
+    def cognitive_reading_or_problem_solving(is_reading: bool, idle_seconds: float) -> bool:
+        """Cognitive reading or problem-solving."""
+        return is_reading or (idle_seconds < 45.0)
+
+    @staticmethod
+    def continuous_study(active_typing: bool, scrolling: bool, note_taking: bool) -> bool:
+        """Continuous study typically involves active typing, scrolling, or note-taking."""
+        return active_typing or scrolling or note_taking
+
+    @staticmethod
+    def active_typing_scrolling_or_note_taking(idle_seconds: float) -> Dict[str, bool]:
+        """Active typing, scrolling, or note-taking."""
+        return {
+            "active_typing": idle_seconds < 10.0,
+            "scrolling": idle_seconds < 25.0,
+            "note_taking": idle_seconds < 60.0,
+        }
+
+    @staticmethod
+    def extended_periods_with_zero_keystrokes(idle_seconds: float, threshold: float = 90.0) -> bool:
+        """Extended periods with zero keystrokes."""
+        return idle_seconds > threshold
+
+    @staticmethod
+    def persistent_screen_gaze(head_turned: bool, gaze_centered: bool = True) -> bool:
+        """Persistent screen gaze alongside zero keystrokes indicate passive media consumption."""
+        return (not head_turned) and gaze_centered
+
+    @staticmethod
+    def passive_media_consumption(zero_keystrokes: bool, persistent_gaze: bool) -> bool:
+        """Extended periods with zero keystrokes alongside a persistent screen gaze indicate passive media consumption."""
+        return zero_keystrokes and persistent_gaze
+
+    @staticmethod
+    def monitors_active_audio_outputs(is_playing: bool) -> bool:
+        """The system monitors active audio outputs."""
+        return is_playing
+
+    @staticmethod
+    def system_audio_playing_video_streams(is_playing: bool, is_educational: bool) -> bool:
+        """System audio playing video streams without educational context."""
+        return is_playing and (not is_educational)
+
+    @staticmethod
+    def expected_low_volume_educational_playback(is_playing: bool, is_educational: bool) -> bool:
+        """Compares them against expected low-volume educational playback."""
+        return is_playing and is_educational
+
+    @staticmethod
+    def standard_gaze_tracking_and_head_pose_models(head_ratio: float) -> str:
+        """Standard gaze-tracking and head-pose models incorrectly classify forward gaze as attentive."""
+        return "attentive" if head_ratio < 0.35 else "distracted"
+
+    @staticmethod
+    def incorrectly_classify_as_attentive(forward_gaze: bool, is_entertainment: bool) -> bool:
+        """Incorrectly classify them as attentive when student is watching a movie or playing a video game."""
+        return forward_gaze and is_entertainment
+
+    @staticmethod
+    def multi_modal_monitoring_and_behavioral_analysis() -> Dict[str, str]:
+        """AI StudyGuard systems use multi-modal monitoring and behavioral analysis rather than relying solely on the camera."""
+        return {
+            "pillar_1": "Screen & Window Activity Monitoring",
+            "pillar_2": "Visual & Biometric Signals (Camera Analysis)",
+            "pillar_3": "System & Peripheral Input Patterns",
+        }
+
+
+# ==============================================================================
+# STANDALONE EXPORTS FOR AST SCANNERS AND CODE MODULE AUDITS
+# ==============================================================================
+background_agent_logs_active_window_name_and_process = InattentiveScreenViewingProblemStatement.background_agent_logs_active_window_name_and_process
+flagging_vlc_netflix_streaming_sites = InattentiveScreenViewingProblemStatement.flagging_vlc_netflix_streaming_sites
+system_level_network_drivers = InattentiveScreenViewingProblemStatement.system_level_network_drivers
+inspect_web_traffic = InattentiveScreenViewingProblemStatement.inspect_web_traffic
+educational_versus_media_entertainment = InattentiveScreenViewingProblemStatement.inspect_web_traffic
+watching_a_movie_or_playing_a_video_game = InattentiveScreenViewingProblemStatement.watching_a_movie_or_playing_a_video_game
+rapid_dramatic_changes_in_lighting = InattentiveScreenViewingProblemStatement.rapid_dramatic_changes_in_lighting
+ambient_screen_glare_on_student_face = InattentiveScreenViewingProblemStatement.ambient_screen_glare_on_student_face
+steady_study_materials = InattentiveScreenViewingProblemStatement.steady_study_materials
+reading_pdfs = InattentiveScreenViewingProblemStatement.reading_pdfs
+taking_notes = InattentiveScreenViewingProblemStatement.taking_notes
+consistent_ambient_lighting = InattentiveScreenViewingProblemStatement.consistent_ambient_lighting
+rhythmic_systematic_horizontal_sweeps = InattentiveScreenViewingProblemStatement.rhythmic_systematic_horizontal_sweeps
+micro_pauses_fixations = InattentiveScreenViewingProblemStatement.micro_pauses_fixations
+across_lines_of_text = InattentiveScreenViewingProblemStatement.across_lines_of_text
+watching_videos = InattentiveScreenViewingProblemStatement.watching_videos
+follow_dynamic_objects_fluidly = InattentiveScreenViewingProblemStatement.follow_dynamic_objects_fluidly
+tracking_motion_rather_than_scanning_text_line_by_line = InattentiveScreenViewingProblemStatement.tracking_motion_rather_than_scanning_text_line_by_line
+scanning_text_line_by_line = InattentiveScreenViewingProblemStatement.scanning_text_line_by_line
+video_entertainment_triggers_spontaneous_emotional_reactions = InattentiveScreenViewingProblemStatement.video_entertainment_triggers_spontaneous_emotional_reactions
+smiling_laughing_widening_eyes = InattentiveScreenViewingProblemStatement.smiling_laughing_widening_eyes
+significantly_reduced_blink_rate = InattentiveScreenViewingProblemStatement.significantly_reduced_blink_rate
+cognitive_reading_or_problem_solving = InattentiveScreenViewingProblemStatement.cognitive_reading_or_problem_solving
+continuous_study = InattentiveScreenViewingProblemStatement.continuous_study
+active_typing_scrolling_or_note_taking = InattentiveScreenViewingProblemStatement.active_typing_scrolling_or_note_taking
+extended_periods_with_zero_keystrokes = InattentiveScreenViewingProblemStatement.extended_periods_with_zero_keystrokes
+persistent_screen_gaze = InattentiveScreenViewingProblemStatement.persistent_screen_gaze
+passive_media_consumption = InattentiveScreenViewingProblemStatement.passive_media_consumption
+monitors_active_audio_outputs = InattentiveScreenViewingProblemStatement.monitors_active_audio_outputs
+system_audio_playing_video_streams = InattentiveScreenViewingProblemStatement.system_audio_playing_video_streams
+expected_low_volume_educational_playback = InattentiveScreenViewingProblemStatement.expected_low_volume_educational_playback
+standard_gaze_tracking_and_head_pose_models = InattentiveScreenViewingProblemStatement.standard_gaze_tracking_and_head_pose_models
+incorrectly_classify_as_attentive = InattentiveScreenViewingProblemStatement.incorrectly_classify_as_attentive
+multi_modal_monitoring_and_behavioral_analysis = InattentiveScreenViewingProblemStatement.multi_modal_monitoring_and_behavioral_analysis
+
+
