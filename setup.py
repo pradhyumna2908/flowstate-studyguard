@@ -12,10 +12,11 @@ setup(
     install_requires=[
         "streamlit>=1.38.0",
         "mediapipe>=1.0.1",
-        "opencv-python>=4.8.0",
+        "opencv-python-headless>=4.8.0",
         "numpy>=1.24.0",
         "qrcode>=8.0",
         "pytest>=8.0.0",
+        "requests>=2.28.0",
     ],
     classifiers=[
         "Programming Language :: Python :: 3",

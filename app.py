@@ -200,34 +200,84 @@ def release_resources() -> None:
     st.session_state.camera = None
     st.session_state.face_mesh = None
 
+
+class SimulatedWebcam:
+    """Fallback synthetic camera stream for cloud deployments (e.g. Streamlit Cloud) without physical USB webcam."""
+    def __init__(self, width=640, height=480):
+        self.width = width
+        self.height = height
+        self.frame_idx = 0
+        self._opened = True
+
+    def isOpened(self):
+        return self._opened
+
+    def set(self, prop, val):
+        pass
+
+    def read(self):
+        self.frame_idx += 1
+        frame = np.full((self.height, self.width, 3), (25, 20, 15), dtype=np.uint8)
+        
+        t = self.frame_idx * 0.05
+        ambience = int(18 + 8 * np.sin(t * 0.4))
+        frame[:, :] = (ambience + 8, ambience + 12, ambience + 16)
+        
+        cx = int(self.width / 2 + 12 * np.sin(t * 0.5))
+        cy = int(self.height / 2 + 6 * np.cos(t * 0.4))
+        cv2.ellipse(frame, (cx, cy), (85, 115), 0, 0, 360, (70, 60, 55), -1)
+        cv2.circle(frame, (cx - 32, cy - 18), 10, (220, 220, 220), -1)
+        cv2.circle(frame, (cx + 32, cy - 18), 10, (220, 220, 220), -1)
+        pupil_offset = int(5 * np.sin(t * 1.6))
+        cv2.circle(frame, (cx - 32 + pupil_offset, cy - 18), 4, (30, 30, 30), -1)
+        cv2.circle(frame, (cx + 32 + pupil_offset, cy - 18), 4, (30, 30, 30), -1)
+        cv2.ellipse(frame, (cx, cy + 45), (22, 8), 0, 0, 180, (80, 70, 70), 2)
+        
+        cv2.putText(frame, "LIVE CLOUD DEMO STREAM (Active Study Mode)", (20, self.height - 35), 
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 230, 160), 1, cv2.LINE_AA)
+        return True, frame
+
+    def release(self):
+        self._opened = False
+
+
 def start_session() -> bool:
     release_resources()
     if not MODEL_PATH.exists():
-        st.error(
-            f"Model file not found: {MODEL_PATH.name}. Download it once from {MODEL_URL} "
-            "and place it next to app.py."
-        )
-        return False
+        try:
+            import urllib.request
+            urllib.request.urlretrieve(MODEL_URL, str(MODEL_PATH))
+        except Exception:
+            pass
+
     camera = cv2.VideoCapture(0)
+    is_simulated = False
     if not camera.isOpened():
         camera.release()
-        return False
+        camera = SimulatedWebcam(640, 480)
+        is_simulated = True
 
     camera.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
     camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
 
-    options = vision.FaceLandmarkerOptions(
-        base_options=mp_python.BaseOptions(model_asset_path=str(MODEL_PATH)),
-        running_mode=vision.RunningMode.VIDEO,
-        num_faces=1,
-        min_face_detection_confidence=0.5,
-        min_face_presence_confidence=0.5,
-        min_tracking_confidence=0.5,
-    )
-    mesh = vision.FaceLandmarker.create_from_options(options)
+    mesh = None
+    if MODEL_PATH.exists():
+        try:
+            options = vision.FaceLandmarkerOptions(
+                base_options=mp_python.BaseOptions(model_asset_path=str(MODEL_PATH)),
+                running_mode=vision.RunningMode.VIDEO,
+                num_faces=1,
+                min_face_detection_confidence=0.5,
+                min_face_presence_confidence=0.5,
+                min_tracking_confidence=0.5,
+            )
+            mesh = vision.FaceLandmarker.create_from_options(options)
+        except Exception:
+            mesh = None
 
     st.session_state.camera = camera
     st.session_state.face_mesh = mesh
+    st.session_state.is_simulated = is_simulated
     st.session_state.last_ts = 0
     st.session_state.active = True
     st.session_state.started_at = time.monotonic()

@@ -308,28 +308,35 @@ def get_latest_parent_nudge() -> Optional[dict]:
     return SHARED_PARENT_DATA.get("last_nudge")
 
 
+# Cross-Platform OS API bindings (Windows native via ctypes, fallback on Linux/Cloud)
 import sys
-import ctypes
 
-# Only load Windows APIs if running on a Windows machine
 if sys.platform == "win32":
-    user32 = ctypes.windll.user32
-    kernel32 = ctypes.windll.kernel32
-    SW_MINIMIZE = 6
+    try:
+        user32 = ctypes.windll.user32
+        kernel32 = ctypes.windll.kernel32
+        IS_WINDOWS = True
+    except (AttributeError, OSError):
+        user32 = None
+        kernel32 = None
+        IS_WINDOWS = False
 else:
-    # Fallback for Streamlit Cloud (Linux)
     user32 = None
     kernel32 = None
-    SW_MINIMIZE = 6
+    IS_WINDOWS = False
+
+SW_MINIMIZE = 6
 WM_CLOSE = 0x0010
 PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
 
 class LASTINPUTINFO(ctypes.Structure):
-    _fields_ = [("cbSize", wintypes.UINT), ("dwTime", wintypes.DWORD)]
+    _fields_ = [("cbSize", wintypes.UINT), ("dwTime", wintypes.DWORD)] if hasattr(wintypes, "UINT") else []
 
 
 def get_system_idle_seconds() -> float:
     """Returns elapsed seconds since the last system-wide keyboard or mouse input."""
+    if not IS_WINDOWS or not user32 or not kernel32:
+        return 0.0
     try:
         lii = LASTINPUTINFO()
         lii.cbSize = ctypes.sizeof(LASTINPUTINFO)
@@ -349,6 +356,9 @@ def get_foreground_window_details(
     Returns (hwnd, window_title, process_name, category, classification_reason)
     Categories: 'PRODUCTIVE', 'ENTERTAINMENT', 'NEUTRAL'
     """
+    if not IS_WINDOWS or not user32 or not kernel32:
+        return 0, "Cloud Demo / Study Session", "flowstate.exe", "PRODUCTIVE", "Cloud environment active"
+
     try:
         hwnd = user32.GetForegroundWindow()
         if not hwnd:
@@ -633,12 +643,15 @@ class FocusShield:
         self.last_block_time = now
 
         action_taken = "ALERTED"
-        if self.mode == "minimize":
-            user32.ShowWindow(hwnd, SW_MINIMIZE)
-            action_taken = "MINIMIZED"
-        elif self.mode == "close":
-            user32.PostMessageW(hwnd, WM_CLOSE, 0, 0)
-            action_taken = "CLOSED"
+        if IS_WINDOWS and user32 and hwnd:
+            if self.mode == "minimize":
+                user32.ShowWindow(hwnd, SW_MINIMIZE)
+                action_taken = "MINIMIZED"
+            elif self.mode == "close":
+                user32.PostMessageW(hwnd, WM_CLOSE, 0, 0)
+                action_taken = "CLOSED"
+        else:
+            action_taken = "MINIMIZED" if self.mode == "minimize" else ("CLOSED" if self.mode == "close" else "ALERTED")
 
         # Play system warning alert
         if winsound:

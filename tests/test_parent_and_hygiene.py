@@ -97,7 +97,7 @@ def test_configuration_hygiene_env_example():
 def test_packaging_and_requirements_hygiene():
     """Asserts presence of pyproject.toml, setup.py, requirements.txt, and .gitignore."""
     root = os.path.join(os.path.dirname(__file__), "..")
-    for f in ["pyproject.toml", "setup.py", "requirements.txt", ".gitignore", "README.md"]:
+    for f in ["pyproject.toml", "setup.py", "requirements.txt", ".gitignore", "README.md", "packages.txt"]:
         path = os.path.join(root, f)
         assert os.path.exists(path), f"Missing required file: {f}"
 
